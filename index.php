@@ -12,7 +12,7 @@ $db = new sqlite3("data.db3");
 	?>
 </head>
 <body>
-	<div class="p-2 bg-blue-700 text-white" id="top">
+	<div class="p-2 bg-blue-700 text-white" id="top" style="background-color:#001d3d">
 		<?=$config['name'];?>
 	</div>
 	<div class="w3-row" id="major">
