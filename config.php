@@ -1,6 +1,6 @@
 <?php
 
 $config = [
-	'name' => "Taluza Designs"
+	'name' => "Malawi Schools"
 ];
 ?>

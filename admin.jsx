@@ -29,18 +29,38 @@ let theme = createTheme({
                 }
             },
             defaultProps:{
-                variant:"contained"
+                variant:"outlined"
             }
         },
         MuiDialog:{
             styleOverrides:{
                 root:{
                     borderRadius:"24px",
-                    textTransform:"none"
+                    textTransform:"none",
                 },
                 paper:{
-                    borderRadius:"16px"
+                    borderRadius:"26px",
+                    backgroundColor:"#f8f1f6",
+                    padding:"24px 12px",
+                    boxShadow:"0px 1px 2px 0px rgb(0 0 0 / 30%), 0px 2px 6px 2px rgb(0 0 0 / 15%);"
                 }
+            },
+            defaultProps:{
+                elevation:2
+            }
+        },
+        MuiDrawer:{
+            styleOverrides:{
+                paper:{
+                    borderTopLeftRadius:"26px",
+                    borderBottomLeftRadius:"26px",
+                    backgroundColor:"#f8f1f6",
+                    padding:"24px 12px",
+                    boxShadow:"0px 1px 2px 0px rgb(0 0 0 / 30%), 0px 2px 6px 2px rgb(0 0 0 / 15%);"
+                }
+            },
+            defaultProps:{
+                elevation:2
             }
         },
         MuiOutlinedInput: {
@@ -52,6 +72,21 @@ let theme = createTheme({
                 },
             },
         },
+        /*MuiPaper:{
+            styleOverrides:{
+                root:{
+                    borderRadius:"16px",
+                    textTransform:"none",
+                }
+            },
+        }*/
+        MuiTab:{
+            styleOverrides:{
+                root:{
+                    textTransform:"none",
+                }
+            },
+        }
     }
 });
 
@@ -105,6 +140,9 @@ function Welcome(){
         <>
             <div className="w3-row">
                 <div className="w3-col m2 w3-border-right" style={{height:innerHeight+"px",overflowY:"auto"}}>
+                    <div className="py-3 w3-center">
+                        <img src="../img/malawi.png" style={{width:"70px"}}/>
+                    </div>
                     {menus.map((row,index)=>(
                         <MenuButton data={row} key={row.title} isActive={page == row.title} onClick={()=>setPage(row.title)} />
                     ))}
@@ -145,12 +183,27 @@ function MenuButton(props){
 function Menus2(){
     const [rows,setRows] = useState([]);
     const [open,setOpen] = useState({
-        add:false
+        add:false,
+        edit:false
     });
     const [active,setActive] = useState({});
     const [form,setForm] = useState({
         title:"",
-    })
+    });
+
+    const [search,setSearch] = useState("");
+
+    const [page,setPage] = useState(0);
+    const [rowsPerPage,setRowsPerPage] = useState(10);
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
 
     const getRows = () => {
         $.get("api/", {getMenus:"true"}, res=>setRows(res));
@@ -177,6 +230,27 @@ function Menus2(){
         })
     }
 
+    const editMenu = (event) => {
+        event.preventDefault();
+
+        $.post("api/", $(event.target).serialize(), response=>{
+            try{
+                let res = JSON.parse(response);
+                if(res.status){
+                    setOpen({...open, edit:false});
+                    getRows();
+                    Toast("Success");
+                }
+                else{
+                    Toast(res.message);
+                }
+            }
+            catch(E){
+                alert(E.toString()+response);
+            }
+        })
+    }
+
     useEffect(()=>{
         getRows();
     }, []);
@@ -186,7 +260,12 @@ function Menus2(){
             <div className="p-2">
                 <Button onClick={e=>setOpen({...open, add:true})}>Add Menu</Button>
 
-                <Table sx={{mt:2}}>
+                <Box sx={{mt:2}}>
+                    <Input 
+                        placeholder="Search"
+                        value={search}
+                        onChange={e=>setSearch(e.target.value)}
+                    />
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -194,13 +273,41 @@ function Menus2(){
                                 <TableCell>Name</TableCell>
                                 <TableCell>Type</TableCell>
                                 <TableCell>Md File</TableCell>
-                                <TableCell>Html File</TableCell>
                                 <TableCell>Parent</TableCell>
                                 <TableCell>Action</TableCell>
                             </TableRow>
                         </TableHead>
+                        <TableBody>
+                            {rows
+                            .filter(r=>r.name.toLowerCase().includes(search.toLowerCase()))
+                            .slice(page*rowsPerPage, (page+1)*rowsPerPage)
+                            .map((row,index)=>(
+                                <TableRow key={row.id} hover sx={{background:(index % 2 == 0 ? "rgba(0, 0, 0, 0.04)":"#fff")}}>
+                                    <TableCell padding="none" sx={{pl:2}}>{index+1}</TableCell>
+                                    <TableCell padding="none">{row.name}</TableCell>
+                                    <TableCell padding="none">{row.type}</TableCell>
+                                    <TableCell padding="none">{row.md_file}</TableCell>
+                                    <TableCell padding="none">{row.parent_data.name}</TableCell>
+                                    <TableCell sx={{p:1}}>
+                                        <Link href="#" className="text-primary" onClick={e=>{
+                                            setActive(row);
+                                            setOpen({...open, edit:true});
+                                        }}>Edit</Link>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
                     </Table>
-                </Table>
+                    <TablePagination
+                        rowsPerPageOptions={[10, 25, 100]}
+                        component="div"
+                        count={rows.length}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                </Box>
             </div>
 
             <Dialog open={open.add} onClose={()=>setOpen({...open, add:false})}>
@@ -232,15 +339,78 @@ function Menus2(){
                         <TextField 
                             label="Markdown file" 
                             size="small" 
-                            sx={{mt:2}} 
+                            sx={{mt:2,mb:3}} 
                             fullWidth 
                             defaultValue={form.title+".md"}
                             name="md_file" />
-                        <TextField label="HTML file" size="small" sx={{mt:2,mb:3}} fullWidth name="html_file" />
-                        <Button>Submit</Button>
+                        
+                        <Button type="submit">Submit</Button>
                     </form>
+
+                    <BottomClose onClose={()=>setOpen({...open, edit:false})}/>
                 </div>
             </Dialog>
+
+            <Drawer anchor="right" open={open.edit} onClose={()=>setOpen({...open, edit:false})}>
+                <div className="p-3" style={{width:"320px"}}>
+                    <CloseHeading label="Edit Menu" onClose={()=>setOpen({...open, edit:false})}/>
+
+                    <form onSubmit={editMenu}>
+                        <input type="hidden" name="menu_id" value={active.id}/>
+                        <TextField 
+                            label="Parent" 
+                            size="small" 
+                            sx={{mt:2}} 
+                            fullWidth 
+                            defaultValue={active.parent} 
+                            value={active.parent}
+                            onChange={e=>setActive({...active, parent:e.target.value})}
+                            name="parent" 
+                            select
+                        >
+                            <MenuItem value={0}>{"No parent"}</MenuItem>
+                            {rows
+                            .filter(r=>r.type =="category")
+                            .map((row,index)=>(
+                                <MenuItem value={row.id}>{row.name}</MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField 
+                            label="Title/Name" 
+                            size="small" 
+                            sx={{mt:2}} 
+                            fullWidth 
+                            value={active.name}
+                            onChange={e=>setActive({...active, name:e.target.value})}
+                            name="edit_menu" />
+                        <TextField 
+                            label="Type" 
+                            size="small" 
+                            sx={{mt:2}} 
+                            fullWidth 
+                            defaultValue={'notes'} 
+                            value={active.type}
+                            onChange={e=>setActive({...active, type:e.target.value})}
+                            name="type" 
+                            select
+                        >
+                            {["notes","category"].map((row,index)=>(
+                                <MenuItem value={row}>{row}</MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField 
+                            label="Markdown file" 
+                            size="small" 
+                            sx={{mt:2,mb:3}} 
+                            fullWidth 
+                            defaultValue={active.md_file}
+                            name="md_file" />                        
+                        <Button type="submit">Submit</Button>
+                    </form>
+
+                    <BottomClose onClose={()=>setOpen({...open, edit:false})}/>
+                </div>
+            </Drawer>
         </>
     )
 }

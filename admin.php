@@ -8,7 +8,7 @@ $db = new sqlite3("data.db3");
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?=$config['name'];?></title>
 	<?php
-	require '../trials/links.php';
+	require '../head/links.php';
 	?>
 </head>
 <body>

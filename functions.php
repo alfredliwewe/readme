@@ -17,6 +17,24 @@ function getData($table, $id){
 	}
 }
 
+function db_get($table, $id){
+	global $db;
+	if (is_numeric($id)) {
+		$sql  = $db->query("SELECT * FROM $table WHERE id = '$id' ");
+		return $sql->fetchArray(SQLITE3_ASSOC);
+	}
+	else{
+		$wheres = [];
+
+		foreach ($id as $key => $value) {
+			$value = $db->escapeString($value);
+			array_push($wheres, "`$key` = '$value' ");
+		}
+
+		return $db->query("SELECT * FROM `$table` WHERE ".implode(" AND ", $wheres))->fetchArray(SQLITE3_ASSOC);
+	}
+}
+
 function getAll($table, $id=null){
 	global $db;
 	
